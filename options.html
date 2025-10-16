@@ -1,6 +1,10 @@
 <title>StockIcon Options</title>
 <body>
-  <p>Apply for api key in <a target="_blank" href="https://qos.hk">https://qos.hk</a>, then fill in options to take effect.</p>
+  <p>
+    Apply for api key in
+    <a target="_blank" href="https://qos.hk">https://qos.hk</a>, then fill in
+    options to take effect. <a id="apply" href="#">apply free key</a>
+  </p>
   <form id="form">
     <label>
       <span>key:</span>
@@ -31,6 +35,15 @@
 
     input {
       flex: 1;
+    }
+  }
+
+  [inert] {
+    opacity: 0.5;
+
+    body:has(&)::after {
+      content: "updating...";
+      color: red;
     }
   }
 </style>

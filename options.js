@@ -3,8 +3,9 @@ const browser = self.browser || self.chrome;
 
 /**@type {HTMLFormElement} */
 const form = document.querySelector("#form");
+const apply = document.querySelector("#apply");
 
-addEventListener("load", async () => {
+async function setValue() {
   const data = await browser.storage.sync.get();
   for (let key in data) {
     /**@type {HTMLInputElement} */
@@ -13,9 +14,27 @@ addEventListener("load", async () => {
       ele.value = data[key];
     }
   }
-});
+}
 
-form.addEventListener("change", () => {
+const save = (v = {}) => {
   const data = Object.fromEntries(new FormData(form).entries());
-  browser.storage.sync.set(data);
-});
+  return browser.storage.sync.set({ ...data, ...v });
+};
+
+async function update() {
+  form.inert = true;
+  try {
+    const res = await fetch(
+      `https://qos-reg.709922234.workers.dev?${new URLSearchParams({ email: `qos+${Date.now()}@xianqiao.wang` })}`,
+    );
+    const { data } = await res.json();
+    await save({ key: data.key });
+    await setValue();
+  } finally {
+    form.inert = false;
+  }
+}
+
+addEventListener("load", () => setValue());
+form.addEventListener("change", () => save());
+apply.addEventListener("click", () => update());

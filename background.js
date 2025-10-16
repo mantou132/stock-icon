@@ -1,6 +1,17 @@
 /**@type import("webextension-polyfill") */
 const browser = self.browser || self.chrome;
 
+class MyError extends Error {
+  constructor(code, msg) {
+    super(`${code}: ${msg}`);
+  }
+}
+
+const ErrorType = {
+  unknown: "0E00",
+  notOk: "0E01",
+};
+
 /**
  * @typedef {Object} Snap
  * @property {string} c - code
@@ -20,15 +31,16 @@ async function fetchStockData() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ codes: [code] }),
-    }
+    },
   );
-  if (!response.ok) throw new Error("not ok");
-  return (await response.json()).data;
+  const { data, msg } = await response.json();
+  if (!response.ok) throw new MyError(ErrorType.notOk, msg);
+  return data;
 }
 
 const fontFile = new FontFace(
   "JetBrains Mono",
-  'url("https://font.download/cdn/webfont/jetbrains-mono/JetbrainsMonoRegular-RpvmM.woff") format("woff")'
+  'url("https://font.download/cdn/webfont/jetbrains-mono/JetbrainsMonoRegular-RpvmM.woff") format("woff")',
 );
 fontFile.load();
 
@@ -44,12 +56,16 @@ async function getImageData() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, size, size);
 
-  let lp = "00.00";
+  let lp = "";
   try {
     const result = await fetchStockData();
     lp = result[0].lp;
   } catch (e) {
-    console.error("Failed to fetch stock data:", e);
+    if (e instanceof MyError) {
+      lp = e.message;
+    } else {
+      lp = new MyError(ErrorType.unknown, e.message || e).message;
+    }
   }
   await fontFile.loaded;
   ctx.font = `normal ${fontSize}px "${fontFile.family}", sans-serif`;
@@ -60,7 +76,7 @@ async function getImageData() {
 
   return {
     imageData: ctx.getImageData(0, 0, size, size),
-    title: `Your mood today is ${lp}°`,
+    title: isNaN(Number(lp)) ? lp : `Your mood today is ${lp}°`,
   };
 }
 
