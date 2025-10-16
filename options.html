@@ -1,15 +1,36 @@
 <title>StockIcon Options</title>
 <body>
+  <p>Apply for api key in <a target="_blank" href="https://qos.hk">https://qos.hk</a>, then fill in options to take effect.</p>
   <form id="form">
     <label>
-      key:
+      <span>key:</span>
       <input name="key" value="d513d38a75e2d0700d3fc61c35ee5107" />
     </label>
     <label>
-      code:
+      <span>code:</span>
       <input name="code" value="SH:600887" />
     </label>
   </form>
 </body>
 
 <script src="options.js"></script>
+
+<style>
+  body {
+    font-family: sans-serif;
+  }
+
+  label {
+    display: flex;
+    margin-bottom: 8px;
+
+    span {
+      display: inline-block;
+      width: 50px;
+    }
+
+    input {
+      flex: 1;
+    }
+  }
+</style>

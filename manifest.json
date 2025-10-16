@@ -9,6 +9,11 @@
     "48": "icon.svg",
     "128": "icon.svg"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "stock-icon@mantou132"
+    }
+  },
   "action": {
     "default_icon": {
       "16": "icon.svg",
