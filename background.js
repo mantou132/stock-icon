@@ -1,29 +1,35 @@
 /**@type import("webextension-polyfill") */
 const browser = self.browser || self.chrome;
 
-class MyError extends Error {
-  constructor(code, msg) {
-    super(`${code}: ${msg}`);
-  }
-}
-
 const ErrorType = {
   unknown: "0E00",
   notOk: "0E01",
 };
 
+const fontFile = new FontFace(
+  "JetBrains Mono",
+  'url("https://font.download/cdn/webfont/jetbrains-mono/JetbrainsMonoRegular-RpvmM.woff") format("woff")',
+);
+
 /**
  * @typedef {Object} Snap
+ * @property {string | undefined} tp - push type
  * @property {string} c - code
  * @property {string} lp - current price
  * @property {string} yp - yesterday price
  * @property {string} o - open price
  */
 
+class MyError extends Error {
+  constructor(code, msg) {
+    super(`${code}: ${msg}`);
+  }
+}
+
 /**
  * @returns {Promise<Snap[]>}
  */
-async function fetchStockData() {
+async function fetchStockSnapshot() {
   const { key, code } = await browser.storage.sync.get();
   const response = await fetch(
     `https://qos.hk/snapshot?${new URLSearchParams({ key })}`,
@@ -38,27 +44,10 @@ async function fetchStockData() {
   return data;
 }
 
-const fontFile = new FontFace(
-  "JetBrains Mono",
-  'url("https://font.download/cdn/webfont/jetbrains-mono/JetbrainsMonoRegular-RpvmM.woff") format("woff")',
-);
-fontFile.load();
-
-/**@type {FontFaceSet} */
-const fonts = self.document?.fonts || self.fonts;
-fonts.add(fontFile);
-
-async function getImageData() {
-  const size = 128;
-  const fontSize = 64;
-  const offscreen = new OffscreenCanvas(size, size);
-  const ctx = offscreen.getContext("2d");
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, size, size);
-
+async function getLpFromSnapshot() {
   let lp = "";
   try {
-    const result = await fetchStockData();
+    const result = await fetchStockSnapshot();
     lp = result[0].lp;
   } catch (e) {
     if (e instanceof MyError) {
@@ -67,25 +56,93 @@ async function getImageData() {
       lp = new MyError(ErrorType.unknown, e.message || e).message;
     }
   }
-  await fontFile.loaded;
+  return lp;
+}
+
+class MyWebSocket extends EventTarget {
+  /**@type {WebSocket} */
+  socket;
+
+  constructor() {
+    super();
+    this.init().then(() => {
+      let timer = 0;
+      browser.storage.sync.onChanged.addListener(() => {
+        clearTimeout(timer);
+        timer = setTimeout(() => this.socket.close(), 12_000);
+      });
+      setInterval(() => {
+        this.socket.send(JSON.stringify({ type: "H" }));
+      }, 10_000);
+    });
+  }
+
+  async init() {
+    const { promise, resolve } = Promise.withResolvers();
+    const { key, code } = await browser.storage.sync.get();
+
+    this.socket = new WebSocket(`wss://api.qos.hk/ws?key=${key}`);
+
+    this.socket.addEventListener("open", () => {
+      this.dispatchEvent(new CustomEvent("open"));
+      this.socket.send(JSON.stringify({ type: "S", codes: [code] }));
+      resolve(this.socket);
+    });
+
+    this.socket.addEventListener("message", (event) => {
+      /**@type {Snap} */
+      const msg = JSON.parse(event.data);
+      if (msg.tp === "S") {
+        this.dispatchEvent(new MessageEvent("message", { data: msg.lp }));
+      }
+    });
+
+    this.socket.addEventListener("close", () => {
+      setTimeout(() => this.init(), 1_000);
+    });
+
+    return promise;
+  }
+}
+
+function update(lp = "") {
+  const size = 128;
+  const fontSize = 64;
+  const offscreen = new OffscreenCanvas(size, size);
+  const ctx = offscreen.getContext("2d");
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, size, size);
+
   ctx.font = `normal ${fontSize}px "${fontFile.family}", sans-serif`;
   ctx.fillStyle = "white";
   const text = lp.replace(".", "").slice(1, 4).padEnd(3, "0");
   const mea = ctx.measureText(text);
   ctx.fillText(text, (size - mea.width) / 2, (size - fontSize) / 2 + fontSize);
 
-  return {
-    imageData: ctx.getImageData(0, 0, size, size),
-    title: isNaN(Number(lp)) ? lp : `Your mood today is ${lp}°`,
-  };
+  browser.action.setIcon({ imageData: ctx.getImageData(0, 0, size, size) });
+  browser.action.setTitle({
+    title: Number(lp) ? `Your mood today is ${lp}°` : lp,
+  });
 }
 
-browser.alarms.create("period", { periodInMinutes: 12.1 / 60 });
-browser.alarms.create("first", { delayInMinutes: 0 });
+async function init() {
+  /**@type {FontFaceSet} */
+  const fonts = self.document?.fonts || self.fonts;
+  await fontFile.load();
+  fonts.add(fontFile);
 
+  const socket = new MyWebSocket();
+  socket.addEventListener("message", (event) => {
+    update(event.data);
+  });
+  socket.addEventListener("open", async () => {
+    update(await getLpFromSnapshot());
+  });
+}
+
+init();
+
+browser.alarms.create({ periodInMinutes: 1 });
 browser.alarms.onAlarm.addListener(async () => {
-  console.log("Alarm triggered! Executing periodic task.");
-  const { imageData, title } = await getImageData();
-  browser.action.setIcon({ imageData });
-  browser.action.setTitle({ title });
+  console.log("Alarm triggered! Used to wake up background script!");
 });
