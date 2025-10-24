@@ -117,7 +117,13 @@ function update(lp = "") {
   ctx.fillStyle = "white";
   const text = lp.replace(".", "").slice(1, 4).padEnd(3, "0");
   const mea = ctx.measureText(text);
-  ctx.fillText(text, (size - mea.width) / 2, (size - fontSize) / 2 + fontSize);
+  const textWidth = mea.width;
+  const textHeight = mea.actualBoundingBoxAscent + mea.actualBoundingBoxDescent;
+  ctx.fillText(
+    text,
+    (size - textWidth) / 2,
+    (size - textHeight) / 2 + textHeight,
+  );
 
   browser.action.setIcon({ imageData: ctx.getImageData(0, 0, size, size) });
   browser.action.setTitle({
@@ -145,4 +151,9 @@ init();
 browser.alarms.create({ periodInMinutes: 1 });
 browser.alarms.onAlarm.addListener(async () => {
   console.log("Alarm triggered! Used to wake up background script!");
+});
+
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1995451#c3
+browser.runtime.onStartup.addListener(() => {
+  browser.alarms.create({ periodInMinutes: 1 });
 });

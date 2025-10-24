@@ -1,49 +1,50 @@
 <title>StockIcon Options</title>
 <body>
-  <p>
-    Apply for api key in
-    <a target="_blank" href="https://qos.hk">https://qos.hk</a>, then fill in
-    options to take effect. <a id="apply" href="#">apply free key</a>
-  </p>
-  <form id="form">
-    <label>
-      <span>key:</span>
-      <input name="key" value="d513d38a75e2d0700d3fc61c35ee5107" />
-    </label>
-    <label>
-      <span>code:</span>
-      <input name="code" value="SH:600887" />
-    </label>
-  </form>
+    <p>
+        Apply for api key in
+        <a target="_blank" href="https://qos.hk">https://qos.hk</a>, then fill
+        in options to take effect.
+        <a id="apply" style="opacity: 0.01" href="#">apply free key</a>
+    </p>
+    <form id="form">
+        <label>
+            <span>key:</span>
+            <input name="key" value="d513d38a75e2d0700d3fc61c35ee5107" />
+        </label>
+        <label>
+            <span>code:</span>
+            <input name="code" value="SH:600887" />
+        </label>
+    </form>
 </body>
 
 <script src="options.js"></script>
 
 <style>
-  body {
-    font-family: sans-serif;
-  }
-
-  label {
-    display: flex;
-    margin-bottom: 8px;
-
-    span {
-      display: inline-block;
-      width: 50px;
+    body {
+        font-family: sans-serif;
     }
 
-    input {
-      flex: 1;
-    }
-  }
+    label {
+        display: flex;
+        margin-bottom: 8px;
 
-  [inert] {
-    opacity: 0.5;
+        span {
+            display: inline-block;
+            width: 50px;
+        }
 
-    body:has(&)::after {
-      content: "updating...";
-      color: red;
+        input {
+            flex: 1;
+        }
     }
-  }
+
+    [inert] {
+        opacity: 0.5;
+
+        body:has(&)::after {
+            content: "updating...";
+            color: red;
+        }
+    }
 </style>

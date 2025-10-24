@@ -3,6 +3,7 @@ const browser = self.browser || self.chrome;
 
 /**@type {HTMLFormElement} */
 const form = document.querySelector("#form");
+/**@type {HTMLAnchorElement} */
 const apply = document.querySelector("#apply");
 
 async function setValue() {
@@ -23,15 +24,15 @@ const save = (v = {}) => {
 
 async function update() {
   form.inert = true;
+  apply.inert = true;
   try {
-    const res = await fetch(
-      `https://qos-reg.709922234.workers.dev?${new URLSearchParams({ email: `qos+${Date.now()}@xianqiao.wang` })}`,
-    );
+    const res = await fetch("https://qos-reg.709922234.workers.dev?email=1");
     const { data } = await res.json();
     await save({ key: data.key });
     await setValue();
   } finally {
     form.inert = false;
+    apply.inert = false;
   }
 }
 
